@@ -1,6 +1,4 @@
-import sqlite3
-import os
-import argparse
+import os, sys, sqlite3, argparse
 from tabulate import tabulate
 
 DATA_BASE = "contact_book.db"
@@ -77,26 +75,45 @@ def list_all_contacts():
             sqliteConnection.close()
 
 
-def parse_cli_args():
+def setup_cli_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--db", action="store", default="contact_book.db", help="Specifying database filepath. "
+                                                                                "Default is cwd/contact_book.db")
     parser.add_argument("--add", action="store", default=[None], nargs='*', help="Adding a new contact, example usage: "
-                                                                                 "'--add John Doe +440000000000'")
+                                                                                 "'--add John Doe +441234567891'")
     parser.add_argument("--dl", action="store", default=[None], nargs='*', help="Deleting existing contact, example "
-                                                                                "usage: '--dl John Doe +440000000000'")
+                                                                                "usage: '--dl John Doe +441234567891'")
     parser.add_argument("--list", action="store_true", default=False, help="Listing all contacts")
-    args = parser.parse_args()
 
+    return parser
+
+
+def parse_cli_args():
+    global DATA_BASE
+    parser = setup_cli_args()
+
+    # Print help if no arguments are specified
+    args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
+
+    # Checking for specified cli arguments and acting accordingly
+    # Changing database filepath
+    if args.db:
+        DATA_BASE = args.db
+    if not os.path.isfile(DATA_BASE):
+        setup_database()
+
+    # Adding a new contact
     if len(args.add) == 3:
         add_contact(args.add[0], args.add[1], args.add[2])
+    # Deleting existing contact
     elif len(args.dl) == 3:
         del_contact(args.dl[0], args.dl[1], args.dl[2])
+    # Listing all contacts
     elif args.list:
         list_all_contacts()
 
 
 def main():
-    if not os.path.isfile(DATA_BASE):
-        setup_database()
     parse_cli_args()
 
 
