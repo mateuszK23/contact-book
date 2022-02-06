@@ -76,7 +76,7 @@ def list_all_contacts():
 
 
 def setup_cli_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="This is a CLI program storing contacts in an SQL database")
     parser.add_argument("--db", action="store", default="contact_book.db", help="Specifying database filepath. "
                                                                                 "Default is cwd/contact_book.db")
     parser.add_argument("--add", action="store", default=[None], nargs='*', help="Adding a new contact, example usage: "
