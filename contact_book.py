@@ -83,9 +83,48 @@ def setup_cli_args():
                                                                                  "'--add John Doe +441234567891'")
     parser.add_argument("--dl", action="store", default=[None], nargs='*', help="Deleting existing contact, example "
                                                                                 "usage: '--dl John Doe +441234567891'")
+    parser.add_argument("--vcard", nargs='?', const="contacts.vcf", help="Saving contacts to a specified .vcf file, "
+                                                                         "if a filepath isn't specified the default "
+                                                                         "is cwd/contacts.vcf")
     parser.add_argument("--list", action="store_true", default=False, help="Listing all contacts")
 
     return parser
+
+
+def make_vcard(name, surname, phone_nr):
+    return [
+        "BEGIN:VCARD\n"
+        "VERSION:2.1'\n"
+        f"N:{surname};{name}\n"
+        f"FN:{name} {surname}\n"
+        f"TEL;WORK;VOICE:{phone_nr}\n"
+        f"REV:1\n"
+        "END:VCARD\n"
+    ]
+
+
+def write_vcard_to_file(f, vcard):
+    with open(f, 'a') as f:
+        f.writelines([line for line in vcard])
+
+
+def create_vcard_contacts(filepath):
+    sqliteConnection = None
+    try:
+        sqliteConnection = sqlite3.connect(DATA_BASE)
+        cursor = sqliteConnection.cursor()
+        for contact in cursor.execute("SELECT name, surname, phone_number FROM contacts").fetchall():
+            vcard = make_vcard(contact[0], contact[1], contact[2])
+            write_vcard_to_file(filepath, vcard)
+
+        sqliteConnection.commit()
+        cursor.close()
+        print("Saved all contacts to " + filepath)
+    except sqlite3.Error as error:
+        print("Failed to list all contacts", error)
+    finally:
+        if sqliteConnection:
+            sqliteConnection.close()
 
 
 def parse_cli_args():
@@ -108,6 +147,9 @@ def parse_cli_args():
     # Deleting existing contact
     elif len(args.dl) == 3:
         del_contact(args.dl[0], args.dl[1], args.dl[2])
+    # Saving contacts to .vcf file
+    elif args.vcard:
+        create_vcard_contacts(args.vcard)
     # Listing all contacts
     elif args.list:
         list_all_contacts()
