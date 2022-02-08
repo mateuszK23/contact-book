@@ -111,6 +111,11 @@ def write_vcard_to_file(f, vcard):
 def create_vcard_contacts(filepath):
     sqliteConnection = None
     try:
+        # If there is an existing .vcf file with the same name, remove it
+        if os.path.isfile(filepath):
+            os.remove(filepath)
+            print("Existing " + filepath + " has been deleted")
+
         sqliteConnection = sqlite3.connect(DATA_BASE)
         cursor = sqliteConnection.cursor()
         for contact in cursor.execute("SELECT name, surname, phone_number FROM contacts").fetchall():
