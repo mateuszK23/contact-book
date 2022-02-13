@@ -86,6 +86,7 @@ def setup_cli_args():
     parser.add_argument("--vcard", nargs='?', const="contacts.vcf", help="Saving contacts to a specified .vcf file, "
                                                                          "if a filepath isn't specified the default "
                                                                          "is cwd/contacts.vcf")
+    parser.add_argument("--read", action="store", help="Importing contacts to a database from a specified .vcf file")
     parser.add_argument("--list", action="store_true", default=False, help="Listing all contacts")
 
     return parser
@@ -132,6 +133,36 @@ def create_vcard_contacts(filepath):
             sqliteConnection.close()
 
 
+def parse_vcf_file(filepath):
+    new_contact = False
+    contact = {}
+
+    with open(filepath, 'r') as f:
+        lines = f.readlines()
+
+    print("Database file: " + DATA_BASE)
+    print("VCF file: " + filepath)
+    print("Importing contacts... ")
+
+    for line in lines:
+        line = line.replace("\n", '')
+        if "BEGIN:VCARD" in line:
+            new_contact = True
+        elif "END:VCARD" in line:
+            add_contact(contact["name"], contact["surname"], contact["phone_nr"])
+            new_contact = False
+        if new_contact:
+            split_line = line.split(':')
+            # Reading name and surname
+            if split_line[0] == 'N':
+                name_and_surname = split_line[1].split(';')
+                contact["name"] = name_and_surname[1].strip()
+                contact["surname"] = name_and_surname[0].strip()
+            # Reading telephone number
+            if "TEL" in split_line[0]:
+                contact["phone_nr"] = split_line[1].strip()
+
+
 def parse_cli_args():
     global DATA_BASE
     parser = setup_cli_args()
@@ -140,9 +171,12 @@ def parse_cli_args():
     args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
 
     # Checking for specified cli arguments and acting accordingly
-    # Changing database filepath
+
+    # Changing database filepath if required
     if args.db:
         DATA_BASE = args.db
+
+    # Making sure a database has been set up
     if not os.path.isfile(DATA_BASE):
         setup_database()
 
@@ -152,9 +186,12 @@ def parse_cli_args():
     # Deleting existing contact
     elif len(args.dl) == 3:
         del_contact(args.dl[0], args.dl[1], args.dl[2])
-    # Saving contacts to .vcf file
+    # Saving contacts to a .vcf file
     elif args.vcard:
         create_vcard_contacts(args.vcard)
+    # Importing contacts from a .vcf file
+    elif args.read:
+        parse_vcf_file(args.read)
     # Listing all contacts
     elif args.list:
         list_all_contacts()
